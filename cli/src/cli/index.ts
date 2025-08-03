@@ -2,6 +2,7 @@ import {Command} from "commander";
 import {introspect} from "../core/introspect";
 import {readFile} from "node:fs/promises";
 import {buildSchema} from "../core/build-schema";
+import {exit} from "node:process";
 
 const program = new Command();
 
@@ -12,34 +13,35 @@ program
     .description("GQLDM(GraphQL Database Middleware) CLI")
 
 program
-    .command("init")
-    .description("Initialize something")
-    .action(() => {
-        console.log("Init command executed");
-    });
-
-program
     .command("introspect")
     .description("Introspect the database schema")
-    .option('-c, --config <path>', 'path to database config.json file', './config.json')
+    .option('-c, --config <path>', 'path to database config file (config.json)', './config.json')
+    .option('-o, --output <path>', 'path to output graphql file (output.graphql)', './output.graphql')
     .action(async (options: CommandOptionsType) => {
-        try {
-            const data = await readFile(options.config, 'utf-8');
-            const config = JSON.parse(data);
-            await introspect(config)
-        } catch (err) {
-            console.error('Failed to read config.json file:', err);
-        }
+        const config = await readFile(options.config, 'utf-8')
+            .then(data => JSON.parse(data))
+            .catch(e => {
+                console.error(e);
+                exit(1);
+            });
+        const outputPath = options.output;
+        await introspect(config, outputPath)
     });
 
 program
     .command("build-schema")
     .description("Build GraphQL schema from database")
-    .option('-c, --config <path>', 'path to database config.json file', './config.json')
+    .option('-c, --config <path>', 'path to database config file (config.json)', './config.json')
+    .option('-o, --output <path>', 'path to output graphql file (output.graphql)', './output.graphql')
     .action(async (options: CommandOptionsType) => {
-        const data = await readFile(options.config, 'utf-8');
-        const config = JSON.parse(data);
-        await buildSchema(config)
+        const config = await readFile(options.config, 'utf-8')
+            .then(data => JSON.parse(data))
+            .catch(e => {
+                console.error(e);
+                exit(1);
+            });
+        const outputPath = options.output;
+        await buildSchema(config, outputPath)
     });
 
 program.parse();

@@ -8,6 +8,7 @@
     "build": "bun run build.js && tsc --emitDeclarationOnly"
   },
   "dependencies": {
+    "@gqldm/utils": "workspace:*",
     "@graphql-tools/schema": "^10.0.24",
     "graphql": "^16.11.0",
     "mysql2": "^3.14.2",

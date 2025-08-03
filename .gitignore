@@ -33,4 +33,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # Finder (MacOS) folder config.json
 .DS_Store
 
+# Turbo
 .turbo/
+
+# Test files
+./tests/
+*.test.json
+*.test.graphql

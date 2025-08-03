@@ -1,14 +1,15 @@
 import mysql, {type ConnectionOptions} from 'mysql2/promise';
 import {Client as PostgresClient, type ClientConfig} from 'pg';
 import {exit} from "node:process";
-import {ForeignKeyMeta, TableMeta} from "../types";
+import {ColumnMeta, ForeignKeyMeta, TableMeta} from "../types";
 
 export type MySqlConfig = ConnectionOptions
-export type PostgresConfig = ClientConfig
+// export type PostgresConfig = ClientConfig
 
 export type IntrospectorDatabaseConfig =
-    | (MySqlConfig & { type: 'mysql' })
-    | (PostgresConfig & { type: 'postgres' });
+    | (MySqlConfig & { type: 'mysql' });
+
+// | (PostgresConfig & { type: 'postgres' });
 
 export class Introspector {
     private readonly config: IntrospectorDatabaseConfig
@@ -24,8 +25,8 @@ export class Introspector {
     async introspect() {
         if (this.config.type === 'mysql') {
             return this.introspectMySql();
-        } else if (this.config.type === 'postgres') {
-            return this.introspectPostgres();
+            // } else if (this.config.type === 'postgres') {
+            //     return this.introspectPostgres();
         } else {
             throw new Error(`Unsupported database type: ${(this.config as any).type}`);
         }
@@ -74,74 +75,28 @@ export class Introspector {
                 [this.config.database, tableName]
             );
 
-            const fks: ForeignKeyMeta[] = (foreignKeys as any[]).map(fk => ({
-                column: fk.COLUMN_NAME,
-                referencedTable: fk.REFERENCED_TABLE_NAME,
-                referencedColumn: fk.REFERENCED_COLUMN_NAME,
-            }));
+            const fksDict: Record<string, ForeignKeyMeta> = (foreignKeys as any[]).reduce((acc, fk) => {
+                acc[fk.COLUMN_NAME] = {
+                    column: fk.COLUMN_NAME,
+                    referencedTable: fk.REFERENCED_TABLE_NAME,
+                    referencedColumn: fk.REFERENCED_COLUMN_NAME,
+                };
+                return acc;
+            }, {} as Record<string, ForeignKeyMeta>);
 
+            const columnsMeta: ColumnMeta[] = (columns as any[]).map(col => ({
+                column: col.COLUMN_NAME,
+                dataType: col.DATA_TYPE,
+                isNullable: col.IS_NULLABLE === 'YES',
+                foreign: fksDict[col.COLUMN_NAME] || undefined
+            }))
             result.push({
                 table: tableName,
-                columns: (columns as any[]).map(col => ({
-                    column: col.COLUMN_NAME,
-                    dataType: col.DATA_TYPE,
-                    isNullable: col.IS_NULLABLE === 'YES',
-                })),
-                foreignKeys: fks.length ? fks : undefined,
+                columns: columnsMeta,
             });
         }
 
         await connection.end();
-        return result;
-    }
-
-    private async introspectPostgres() {
-        if (this.config.type !== 'postgres') {
-            throw new Error(`Expected Postgres config, got: ${(this.config as any).type}`);
-        }
-
-        const client = new PostgresClient({
-            host: this.config.host,
-            port: this.config.port,
-            user: this.config.user,
-            password: this.config.password,
-            database: this.config.database,
-        });
-        await client.connect();
-
-        const tablesRes = await client.query(`
-            SELECT table_name
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
-              AND table_type = 'BASE TABLE'
-        `);
-
-        const result: TableMeta[] = [];
-
-        for (const row of tablesRes.rows) {
-            const tableName = row.table_name;
-
-            const columnsRes = await client.query(
-                `
-                    SELECT column_name, data_type, is_nullable
-                    FROM information_schema.columns
-                    WHERE table_schema = 'public'
-                      AND table_name = $1
-                `,
-                [tableName],
-            );
-
-            result.push({
-                table: tableName,
-                columns: columnsRes.rows.map(col => ({
-                    column: col.column_name,
-                    dataType: col.data_type,
-                    isNullable: col.is_nullable === 'YES',
-                })),
-            });
-        }
-
-        await client.end();
         return result;
     }
 }

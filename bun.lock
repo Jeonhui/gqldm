@@ -29,6 +29,7 @@
     "packages/schema-builder": {
       "name": "@gqldm/schema-builder",
       "dependencies": {
+        "@gqldm/utils": "workspace:*",
         "@graphql-tools/schema": "^10.0.24",
         "graphql": "^16.11.0",
         "mysql2": "^3.14.2",
@@ -37,6 +38,13 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/pg": "^8.15.4",
+        "typescript": "^5",
+      },
+    },
+    "packages/utils": {
+      "name": "@gqldm/utils",
+      "devDependencies": {
+        "@types/bun": "latest",
         "typescript": "^5",
       },
     },
@@ -97,6 +105,8 @@
     "@gqldm/cli": ["@gqldm/cli@workspace:cli"],
 
     "@gqldm/schema-builder": ["@gqldm/schema-builder@workspace:packages/schema-builder"],
+
+    "@gqldm/utils": ["@gqldm/utils@workspace:packages/utils"],
 
     "@graphql-tools/merge": ["@graphql-tools/merge@9.1.0", "", { "dependencies": { "@graphql-tools/utils": "^10.9.0", "@theguild/federation-composition": "^0.19.0", "tslib": "^2.4.0" }, "peerDependencies": { "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0" } }, "sha512-mKmjIVeu4ayPr+LbuhzukBOd67YdLhe9uPO/2tQ74iXP0EQMPlzAbUGPPym92gqCT5SxM6kXT65JUE9oBRX0sQ=="],
 
